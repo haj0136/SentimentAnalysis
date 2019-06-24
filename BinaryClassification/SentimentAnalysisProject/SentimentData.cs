@@ -4,8 +4,7 @@ namespace SentimentAnalysisProject
 {
     public class SentimentData
     {
-        [Column(ordinal: "0", name: "Label")] public float Sentiment;
-        [Column(ordinal: "1")] public string SentimentText;
-        public float Probability;
+        [LoadColumn(0)] public string SentimentText;
+        [LoadColumn(1)] public bool Label;
     }
 }
