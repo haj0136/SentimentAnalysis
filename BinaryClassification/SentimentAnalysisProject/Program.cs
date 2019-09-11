@@ -21,9 +21,13 @@ namespace SentimentAnalysisProject
             var mlHelper = new MachineLearningHelper(1);
 
             IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentData>(_imdbDataPath);
+            var test = mlHelper.MlContext.Data.CreateEnumerable<SentimentData>(dataView, false).ToList();
+            Console.WriteLine(test.Count);
             Utils.ShowDataViewInConsole(mlHelper.MlContext ,dataView);
             var model = mlHelper.TrainAndEvaluateSdca(dataView, _sdcaModelPath, crossValidation: false);
             //var model = mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, _ApModelPath, crossValidation: false);
+
+            Console.WriteLine($"Data size is: {dataView.GetRowCount()} rows");
 
             mlHelper.Predict(model, "This is a very rude movie");
             mlHelper.Predict(model, "I like this movie");
