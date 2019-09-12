@@ -1,20 +1,32 @@
 ﻿using Microsoft.ML;
+using Microsoft.ML.Trainers;
+using Microsoft.ML.Transforms.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.ML.Trainers;
-using Microsoft.ML.Transforms.Text;
 
 namespace SentimentAnalysisProject
 {
     public class MachineLearningHelper
     {
         public MLContext MlContext { get; }
+        private readonly bool _randomTry;
+        private readonly bool _removeStopWords;
 
-        public MachineLearningHelper(int seed)
+        /// <summary>
+        /// If seed is null, algorithm will work with random chance and results will be different.
+        /// </summary>
+        /// <param name="seed"></param>
+        /// <param name="removeStopWords"></param>
+        public MachineLearningHelper(int? seed = null, bool removeStopWords = false)
         {
             MlContext = new MLContext(seed);
+            if (seed == null)
+            {
+                _randomTry = true;
+            }
+            _removeStopWords = removeStopWords;
         }
 
         public IDataView LoadData(string path)
@@ -24,16 +36,19 @@ namespace SentimentAnalysisProject
 
         public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, bool crossValidation = false)
         {
-            var splittedData = MlContext.Data.TrainTestSplit(data, 0.2);
-            var trainSet = splittedData.TrainSet;
-            var testSet = splittedData.TestSet;
+            var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
+            var trainSet = splitData.TrainSet;
+            var testSet = splitData.TestSet;
 
             var featureOptions = new TextFeaturizingEstimator.Options
             {
-                StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English},
                 //WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = true },
-                CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths= false },
+                CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
             };
+            if (_removeStopWords)
+            {
+                featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
+            }
 
             var sdcaOptions = new SdcaLogisticRegressionBinaryTrainer.Options
             {
@@ -43,8 +58,12 @@ namespace SentimentAnalysisProject
                 NumberOfThreads = 1
             };
 
-            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options:featureOptions, nameof(SentimentData.SentimentText));
-            var trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(sdcaOptions);
+            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
+            var trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features");
+            if (!_randomTry)
+            {
+                trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(sdcaOptions);
+            }
             var trainingPipeline = pipeline.Append(trainer);
 
             ITransformer model = null;
@@ -127,7 +146,7 @@ namespace SentimentAnalysisProject
 
                 model = cvMetrics.Aggregate((m1, m2) => m1.Metrics.F1Score > m2.Metrics.F1Score ? m1 : m2).Model;
                 var accuracies = cvMetrics.Select(r => r.Metrics.Accuracy);
-                Console.WriteLine($"Average accuracy: {(accuracies.Average()*100):F}%");
+                Console.WriteLine($"Average accuracy: {(accuracies.Average() * 100):F}%");
                 Console.WriteLine("End of model evaluation");
             }
             else
