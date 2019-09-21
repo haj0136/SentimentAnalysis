@@ -55,7 +55,7 @@ namespace SentimentAnalysisProject
                 LabelColumnName = "Label",
                 FeatureColumnName = "Features",
                 Shuffle = false,
-                NumberOfThreads = 1
+                NumberOfThreads = 1,
             };
 
             var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
@@ -114,7 +114,17 @@ namespace SentimentAnalysisProject
             var trainSet = splitData.TrainSet;
             var testSet = splitData.TestSet;
 
-            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", inputColumnName: nameof(SentimentData.SentimentText));
+            var featureOptions = new TextFeaturizingEstimator.Options
+            {
+                //WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = true },
+                CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
+            };
+            if (_removeStopWords)
+            {
+                featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
+            }
+
+            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options:featureOptions, nameof(SentimentData.SentimentText));
             var options = new AveragedPerceptronTrainer.Options
             {
                 LossFunction = new ExpLoss(),
@@ -232,7 +242,15 @@ namespace SentimentAnalysisProject
             Console.WriteLine("====Prediction Test of loaded model with a multiple samples====");
             Console.WriteLine();
 
-            Utils.ShowDataViewInConsole(MlContext, predictions, numberOfRows: 4);
+            IEnumerable<SentimentPrediction> predictedResults = MlContext.Data.CreateEnumerable<SentimentPrediction>(predictions, reuseRowObject: false);
+
+            var results = sentiments.Zip(predictedResults, (sentiment, prediction) => (sentiment, prediction));
+
+            foreach (var result  in results)
+{
+            Console.WriteLine($"Sentiment: {result.sentiment.SentimentText} | Prediction: {(Convert.ToBoolean(result.prediction.Prediction) ? "Positive" : "Negative")} | Probability: {result.prediction.Probability} ");
+
+}
 
             Console.WriteLine("=============== End of predictions ===============");
         }
