@@ -34,35 +34,56 @@ namespace SentimentAnalysisProject
             return MlContext.Data.LoadFromTextFile<SentimentData>(path);
         }
 
-        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, bool crossValidation = false)
+        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        {
+            var featureOptions = new TextFeaturizingEstimator.Options
+            {
+                //WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = true},
+                //CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
+                
+            };
+
+            if (_removeStopWords)
+            {
+                featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
+            }
+            return TrainAndEvaluateSdca(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput);
+        }
+
+        /// <summary>
+        /// This method won't remove stop words by default, even if it was set by constructor
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="modelPath"></param>
+        /// <param name="featureOptions"></param>
+        /// <param name="crossValidation"></param>
+        /// <param name="crossValidationDetailOutput"></param>
+        /// <returns></returns>
+        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false)
         {
             var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
             var trainSet = splitData.TrainSet;
             var testSet = splitData.TestSet;
 
-            var featureOptions = new TextFeaturizingEstimator.Options
-            {
-                //WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = true },
-                CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
-            };
-            if (_removeStopWords)
-            {
-                featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
-            }
+            
+            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
 
             var sdcaOptions = new SdcaLogisticRegressionBinaryTrainer.Options
             {
                 LabelColumnName = "Label",
                 FeatureColumnName = "Features",
                 Shuffle = false,
-                NumberOfThreads = 1,
+                NumberOfThreads = 1
             };
 
-            var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
-            var trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features");
+            SdcaLogisticRegressionBinaryTrainer trainer;
             if (!_randomTry)
             {
                 trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(sdcaOptions);
+            }
+            else
+            {
+                trainer = MlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features");
             }
             var trainingPipeline = pipeline.Append(trainer);
 
@@ -71,20 +92,22 @@ namespace SentimentAnalysisProject
             if (crossValidation)
             {
                 Console.WriteLine("Cross validation");
-                var cvMetrics = MlContext.BinaryClassification.CrossValidate(data, trainingPipeline, numberOfFolds: 5);
+                var cvMetrics = MlContext.BinaryClassification.CrossValidate(data, trainingPipeline, numberOfFolds: 10);
                 Console.WriteLine("End of Cross validation");
-                Console.WriteLine();
                 Console.WriteLine("Evaluating Model accuracy with Test data");
 
                 Console.WriteLine();
-                foreach (var cvr in cvMetrics)
+                if (crossValidationDetailOutput)
                 {
-                    Utils.PrintBinaryClassificationMetrics(trainer.ToString(), cvr.Metrics);
+                    foreach (var cvr in cvMetrics)
+                    {
+                        Utils.PrintBinaryClassificationMetrics(trainer.ToString(), cvr.Metrics);
+                    } 
                 }
 
                 model = cvMetrics.Aggregate((m1, m2) => m1.Metrics.F1Score > m2.Metrics.F1Score ? m1 : m2).Model;
                 var accuracies = cvMetrics.Select(r => r.Metrics.Accuracy);
-                Console.WriteLine(accuracies.Average());
+                Console.WriteLine($"SDCA Average accuracy: {(accuracies.Average() * 100):F}%");
                 Console.WriteLine("End of model evaluation");
             }
             else
@@ -104,25 +127,42 @@ namespace SentimentAnalysisProject
                 Console.WriteLine("End of model evaluation");
             }
 
-            MlContext.Model.Save(model, trainSet.Schema, modelPath);
+            if (modelPath != null)
+            {
+                MlContext.Model.Save(model, trainSet.Schema, modelPath);
+                Console.WriteLine("Model saved");
+            }
             return model;
         }
 
-        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, bool crossValidation = false)
+        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false)
         {
-            var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
-            var trainSet = splitData.TrainSet;
-            var testSet = splitData.TestSet;
-
             var featureOptions = new TextFeaturizingEstimator.Options
             {
                 //WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = true },
-                CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
+                //CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
             };
             if (_removeStopWords)
             {
                 featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
             }
+            return TrainAndEvaluateAveragedPerceptron(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput);
+        }
+
+        /// <summary>
+        /// This method won't remove stop words by default, even if it was set by class constructor
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="modelPath"></param>
+        /// <param name="featureOptions"></param>
+        /// <param name="crossValidation"></param>
+        /// <param name="crossValidationDetailOutput"></param>
+        /// <returns></returns>
+        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        {
+            var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
+            var trainSet = splitData.TrainSet;
+            var testSet = splitData.TestSet;
 
             var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options:featureOptions, nameof(SentimentData.SentimentText));
             var options = new AveragedPerceptronTrainer.Options
@@ -135,7 +175,8 @@ namespace SentimentAnalysisProject
                 LabelColumnName = "Label",
                 FeatureColumnName = "Features"
             };
-            var trainer = MlContext.BinaryClassification.Trainers.AveragedPerceptron(options);
+            
+            var trainer = MlContext.BinaryClassification.Trainers.AveragedPerceptron();
             var trainingPipeline = pipeline.Append(trainer);
 
             ITransformer model = null;
@@ -143,20 +184,23 @@ namespace SentimentAnalysisProject
             if (crossValidation)
             {
                 Console.WriteLine("Cross validation");
-                var cvMetrics = MlContext.BinaryClassification.CrossValidateNonCalibrated(data, trainingPipeline, numberOfFolds: 5);
+                var cvMetrics = MlContext.BinaryClassification.CrossValidateNonCalibrated(data, trainingPipeline, numberOfFolds: 10);
                 Console.WriteLine("End of Cross validation");
                 Console.WriteLine();
                 Console.WriteLine("Evaluating Model accuracy with Test data");
 
-                Console.WriteLine();
-                foreach (var cvr in cvMetrics)
+                if (crossValidationDetailOutput)
                 {
-                    Utils.PrintBinaryClassificationMetrics(trainer.ToString(), cvr.Metrics);
+                    Console.WriteLine();
+                    foreach (var cvr in cvMetrics)
+                    {
+                        Utils.PrintBinaryClassificationMetrics(trainer.ToString(), cvr.Metrics);
+                    } 
                 }
 
                 model = cvMetrics.Aggregate((m1, m2) => m1.Metrics.F1Score > m2.Metrics.F1Score ? m1 : m2).Model;
                 var accuracies = cvMetrics.Select(r => r.Metrics.Accuracy);
-                Console.WriteLine($"Average accuracy: {(accuracies.Average() * 100):F}%");
+                Console.WriteLine($"Averaged perceptron Average accuracy: {(accuracies.Average() * 100):F}%");
                 Console.WriteLine("End of model evaluation");
             }
             else
@@ -176,19 +220,24 @@ namespace SentimentAnalysisProject
                 Console.WriteLine("End of model evaluation");
             }
 
-            MlContext.Model.Save(model, trainSet.Schema, modelPath);
+            if (modelPath != null)
+            {
+                MlContext.Model.Save(model, trainSet.Schema, modelPath);
+                Console.WriteLine("Model saved");
+            }
             return model;
         }
 
 
-        public void Predict(ITransformer model, string text)
+        public void Predict<TSentimentData>(ITransformer model, string text) where TSentimentData: class, ISentimentData, new()
         {
-            var predictionEngine = MlContext.Model.CreatePredictionEngine<SentimentData, SentimentPrediction>(model);
+            var predictionEngine = MlContext.Model.CreatePredictionEngine<TSentimentData, SentimentPrediction>(model);
 
-            var sampleStatement = new SentimentData
+            var sampleStatement = new TSentimentData
             {
                 SentimentText = text
             };
+
 
             var resultPrediction = predictionEngine.Predict(sampleStatement);
 
