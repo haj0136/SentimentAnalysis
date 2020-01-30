@@ -1,0 +1,135 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Try the new cross-platform PowerShell https://aka.ms/pscore6
+
+PS C:\Users\Marek> cd C:\Users\Marek\source\repos\SentimentAnalysis\BinaryClassification\SentimentAnalysisProject\Data
+PS C:\Users\Marek\source\repos\SentimentAnalysis\BinaryClassification\SentimentAnalysisProject\Data> python
+Python 3.7.4 (tags/v3.7.4:e09359112e, Jul  8 2019, 20:34:20) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import pandas as pd
+>>> data = pd.read_csv("imdb_labeled.txt", sep='\t')
+>>> data.head
+<bound method NDFrame.head of     A very, very, very slow-moving, aimless movie about a distressed, drifting young man.    0
+0    Not sure who was more lost - the flat characte...                                       0
+1    Attempting artiness with black & white and cle...                                       0
+2         Very little music or anything to speak of.                                         0
+3    The best scene in the movie was when Gerardo i...                                       1
+4    The rest of the movie lacks art, charm, meanin...                                       0
+..                                                 ...                                      ..
+742  I just got bored watching Jessice Lange take h...                                       0
+743  Unfortunately, any virtue in this film's produ...                                       0
+744                   In a word, it is embarrassing.                                         0
+745                               Exceptionally bad!                                         0
+746  All in all its an insult to one's intelligence...                                       0
+
+[747 rows x 2 columns]>
+>>> data.head()
+  A very, very, very slow-moving, aimless movie about a distressed, drifting young man.    0
+0  Not sure who was more lost - the flat characte...                                       0
+1  Attempting artiness with black & white and cle...                                       0
+2       Very little music or anything to speak of.                                         0
+3  The best scene in the movie was when Gerardo i...                                       1
+4  The rest of the movie lacks art, charm, meanin...                                       0
+>>> data = pd.read_csv("imdb_labeled.txt", sep='\t', header=None)
+>>> data.head()
+                                                   0  1
+0  A very, very, very slow-moving, aimless movie ...  0
+1  Not sure who was more lost - the flat characte...  0
+2  Attempting artiness with black & white and cle...  0
+3       Very little music or anything to speak of.    0
+4  The best scene in the movie was when Gerardo i...  1
+>>> data.columns = ['review', 'sentiment']
+>>> data.head()
+                                              review  sentiment
+0  A very, very, very slow-moving, aimless movie ...          0
+1  Not sure who was more lost - the flat characte...          0
+2  Attempting artiness with black & white and cle...          0
+3       Very little music or anything to speak of.            0
+4  The best scene in the movie was when Gerardo i...          1
+>>> data.groupby('sentiment').count()
+           review
+sentiment
+0             362
+1             386
+>>> len(data)
+748
+>>> data.head
+<bound method NDFrame.head of                                                 review  sentiment
+0    A very, very, very slow-moving, aimless movie ...          0
+1    Not sure who was more lost - the flat characte...          0
+2    Attempting artiness with black & white and cle...          0
+3         Very little music or anything to speak of.            0
+4    The best scene in the movie was when Gerardo i...          1
+..                                                 ...        ...
+743  I just got bored watching Jessice Lange take h...          0
+744  Unfortunately, any virtue in this film's produ...          0
+745                   In a word, it is embarrassing.            0
+746                               Exceptionally bad!            0
+747  All in all its an insult to one's intelligence...          0
+
+[748 rows x 2 columns]>
+>>> data = pd.read_csv("yelp_labelled.txt", sep='\t', header=None)
+>>> len(data)
+1000
+>>> data.columns = ['review', 'sentiment']
+>>> data.head()
+                                              review  sentiment
+0                           Wow... Loved this place.          1
+1                                 Crust is not good.          0
+2          Not tasty and the texture was just nasty.          0
+3  Stopped by during the late May bank holiday of...          1
+4  The selection on the menu was great and so wer...          1
+>>> len(data)
+1000
+>>> data.groupby('sentiment').count()
+           review
+sentiment
+0             500
+1             500
+>>> reviews = data['review'].astype(str)
+>>> data.dtypes
+review       object
+sentiment     int64
+dtype: object
+>>> reviewws
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'reviewws' is not defined
+>>> reviews
+0                               Wow... Loved this place.
+1                                     Crust is not good.
+2              Not tasty and the texture was just nasty.
+3      Stopped by during the late May bank holiday of...
+4      The selection on the menu was great and so wer...
+                             ...
+995    I think food should have flavor and texture an...
+996                             Appetite instantly gone.
+997    Overall I was not impressed and would not go b...
+998    The whole experience was underwhelming, and I ...
+999    Then, as if I hadn't wasted enough of my life ...
+Name: review, Length: 1000, dtype: object
+>>> lenght = reviews.str.len()
+>>> leanght.mean()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'leanght' is not defined
+>>> lenght.mean()
+58.316
+>>> words = reviews.str.split().str.len()
+>>> words
+0       4
+1       4
+2       8
+3      15
+4      12
+       ..
+995    12
+996     3
+997    10
+998    16
+999    28
+Name: review, Length: 1000, dtype: int64
+>>> words.mean()
+10.894
+>>>

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using SentimentAnalysisProject.Experiments;
+using System.Diagnostics;
 
 namespace SentimentAnalysisProject
 {
@@ -13,24 +14,31 @@ namespace SentimentAnalysisProject
     {
         private static readonly string ImdbDataPath = Path.Combine(Environment.CurrentDirectory, "Data", "imdb_labeled.txt"); // label index 1, sentimentText index 0
         private static readonly string YelpDataPath = Path.Combine(Environment.CurrentDirectory, "Data", "yelp_labelled.txt"); // label index 1, sentimentText index 0
-        private static readonly string ImdbLargeDataPath = Path.Combine(Environment.CurrentDirectory, "Data", "labeledTrainData.tsv"); // label index 1, sentimentText index 2
         private static readonly string SdcaModelPath = Path.Combine(Environment.CurrentDirectory, "Data", "SdcaModel.zip");
         private static readonly string ApModelPath = Path.Combine(Environment.CurrentDirectory, "Data", "ApModel.zip");
 
         static void Main(string[] args)
         {
+            var sw = new Stopwatch();
+
+            sw.Start();
             //Experiment1.StartExperiment();
-            Experiment2.StartExperiment();
+            //Experiment2.StartExperiment();
+            Experiment3.StartExperiment();
             //SmallDataset();
             //LargeDataset();
 
             //Lemmatization(YelpDataPath, "YelpLemmatized");
-            //Lemmatization(ImdbLargeDataPath, "ImdbLargeLemmatized.tsv");
+            //Lemmatization(Paths.Imdb50kDataPath, "Imdb50KLemmatized.tsv");
+
+            sw.Stop();
+
+            Console.WriteLine("Elapsed={0}",sw.Elapsed);
         }
 
         private static void SmallDataset()
         {
-            var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: true);
+            var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: false);
 
             IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentData>(YelpDataPath);
             var test = mlHelper.MlContext.Data.CreateEnumerable<SentimentData>(dataView, false).ToList();
@@ -62,15 +70,15 @@ namespace SentimentAnalysisProject
 
         private static void LargeDataset()
         {
-            var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: true);
+            var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: false);
 
-            IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(ImdbLargeDataPath, hasHeader: true);
+            IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.ImdbLargeDataPath, hasHeader: true);
             var test = mlHelper.MlContext.Data.CreateEnumerable<SentimentDataImdbLarge>(dataView, false).ToList();
             Console.WriteLine($"Data size is: {test.Count} rows");
             Utils.ShowDataViewInConsole(mlHelper.MlContext, dataView);
-            //var model = mlHelper.TrainAndEvaluateSdca(dataView, SdcaModelPath, crossValidation: false);
+            var model = mlHelper.TrainAndEvaluateSdca(dataView, SdcaModelPath, crossValidation: false);
 
-            var model = mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, ApModelPath, crossValidation: false);
+            //var model = mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, ApModelPath, crossValidation: false);
 
             //mlHelper.Predict<SentimentDataImdbLarge>(model, "This is a very rude movie");
             //mlHelper.Predict<SentimentDataImdbLarge>(model, "I like this movie");
