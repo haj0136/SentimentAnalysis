@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using SentimentAnalysisProject.Experiments;
 using System.Diagnostics;
+using Microsoft.ML.Transforms.Text;
 
 namespace SentimentAnalysisProject
 {
@@ -28,8 +29,8 @@ namespace SentimentAnalysisProject
             //SmallDataset();
             //LargeDataset();
 
-            //Lemmatization(YelpDataPath, "YelpLemmatized");
-            //Lemmatization(Paths.Imdb50kDataPath, "Imdb50KLemmatized.tsv");
+            //Lemmatization(Paths.Amazon1MTrainPath, "AmazonTrainLemmatized.tsv");
+            //Lemmatization("Data/AmazonValidationSet100k.tsv", "AmazonValidationLemmatized.tsv");
 
             sw.Stop();
 
@@ -45,8 +46,13 @@ namespace SentimentAnalysisProject
             Console.WriteLine($"Data size is: {test.Count} rows");
             Utils.ShowDataViewInConsole(mlHelper.MlContext, dataView);
             //var model = mlHelper.TrainAndEvaluateSdca(dataView, SdcaModelPath, crossValidation: false);
+            var featureOptions = new TextFeaturizingEstimator.Options
+            {
+                KeepDiacritics = true,
+                CaseMode = TextNormalizingEstimator.CaseMode.Lower
+            };
 
-            var model = mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, ApModelPath, crossValidation: false);
+            var model = mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, ApModelPath, featureOptions, crossValidation: true);
 
             //mlHelper.Predict<SentimentData>(model, "This is a very rude movie");
             //mlHelper.Predict<SentimentData>(model, "I like this movie");
@@ -111,7 +117,7 @@ namespace SentimentAnalysisProject
             using (StreamReader sr = File.OpenText(pathToFile))
             using (StreamWriter sw = File.CreateText(newFileName))
             {
-                string s = String.Empty;
+                string s = string.Empty;
                 int counter = 0;
                 while ((s = sr.ReadLine()) != null)
                 {

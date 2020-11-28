@@ -17,6 +17,7 @@ namespace SentimentAnalysisProject.Experiments
         {
             Console.WriteLine("---------Stop Words Removal-------------------");
             var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: false);
+            
             var featureOptions = new TextFeaturizingEstimator.Options
             {
                 StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English },
@@ -25,9 +26,13 @@ namespace SentimentAnalysisProject.Experiments
 
             };
             //IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentData>(Paths.YelpDataPath);
-            IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kDataPath, hasHeader: true);
-            mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
-            mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            //IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kDataPath, hasHeader: true);
+            IDataView largeDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon1MTrainPath, hasHeader: true);
+            IDataView testDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon400KTestPath, hasHeader: true);
+            //mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateSdca(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
+            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
             Console.WriteLine();
             Console.WriteLine("---------Punctuations removal------------------");
             featureOptions = new TextFeaturizingEstimator.Options
@@ -37,8 +42,10 @@ namespace SentimentAnalysisProject.Experiments
                 //CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
 
             };
-            mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
-            mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            //mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateSdca(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
+            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
             Console.WriteLine();
             Console.WriteLine("-------Stop Words Removal + Punctuations Removal-----------------");
             featureOptions = new TextFeaturizingEstimator.Options
@@ -49,27 +56,36 @@ namespace SentimentAnalysisProject.Experiments
                 //CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
 
             };
-            mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
-            mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            //mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateSdca(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
+            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
             Console.WriteLine();
+            
             Console.WriteLine("---------Lemmatization------------------");
             //IDataView dataViewLemma = mlHelper.MlContext.Data.LoadFromTextFile<SentimentData>(Paths.YelpLemmatizedDataPath);
-            IDataView dataViewLemma = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kLemmatizedDataPath, hasHeader: true);
+            //IDataView dataViewLemma = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kLemmatizedDataPath, hasHeader: true);
+            IDataView largeDataViewLemm = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.AmazonTrainLemmatizedPath, hasHeader: true);
+            IDataView testDataViewLemm = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.AmazonTestLemmatizedPath, hasHeader: true);
 
             featureOptions = new TextFeaturizingEstimator.Options
             {
                 StopWordsRemoverOptions = null
             };
-            mlHelper.TrainAndEvaluateSdca(dataViewLemma, null, featureOptions, crossValidation: true);
-            mlHelper.TrainAndEvaluateAveragedPerceptron(dataViewLemma, null, featureOptions, crossValidation: true);
+            //mlHelper.TrainAndEvaluateSdca(dataViewLemma, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateSdca(largeDataViewLemm, null, featureOptions, crossValidation: false, testData: testDataViewLemm);
+            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataViewLemma, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataViewLemm, null, featureOptions, crossValidation: false, testData: testDataViewLemm);
             Console.WriteLine();
             Console.WriteLine("---------Lemmatization + Stop Words Removal------------------");
             featureOptions = new TextFeaturizingEstimator.Options
             {
                 StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English },
             };
-            mlHelper.TrainAndEvaluateSdca(dataViewLemma, null, featureOptions, crossValidation: true);
-            mlHelper.TrainAndEvaluateAveragedPerceptron(dataViewLemma, null, featureOptions, crossValidation: true);
+            //mlHelper.TrainAndEvaluateSdca(dataViewLemma, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateSdca(largeDataViewLemm, null, featureOptions, crossValidation: false, testData: testDataViewLemm);
+            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataViewLemma, null, featureOptions, crossValidation: true);
+            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataViewLemm, null, featureOptions, crossValidation: false, testData: testDataViewLemm);
         }
 
         private static void NGramsExperiment()
@@ -77,9 +93,11 @@ namespace SentimentAnalysisProject.Experiments
             
             var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: false);
             //IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentData>(Paths.YelpDataPath, hasHeader: false);
-            IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kDataPath, hasHeader: true);
+            //IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kDataPath, hasHeader: true);
+            IDataView largeDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon1MTrainPath, hasHeader: true);
+            IDataView testDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon400KTestPath, hasHeader: true);
             TextWriter oldOut = Console.Out;
-            using (var fs = new FileStream("data/reportImdb50Preprocess.txt", FileMode.OpenOrCreate, FileAccess.Write))
+            using (var fs = new FileStream("data/reportAmazonPreprocess.txt", FileMode.OpenOrCreate, FileAccess.Write))
             using (var writer = new StreamWriter(fs))
             {
                 Console.SetOut(writer);
@@ -103,14 +121,15 @@ namespace SentimentAnalysisProject.Experiments
                             Console.SetOut(writer);
                             var featureOptions = new TextFeaturizingEstimator.Options
                             {
-                                StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English },
                                 WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = i, UseAllLengths = boolVal, Weighting = weightingCriterion },
                                 KeepPunctuations = false
                                 //CharFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 5, UseAllLengths = false },
 
                             };
-                            mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
-                            mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+                            //mlHelper.TrainAndEvaluateSdca(dataView, null, featureOptions, crossValidation: true);
+                            mlHelper.TrainAndEvaluateSdca(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
+                            //mlHelper.TrainAndEvaluateAveragedPerceptron(dataView, null, featureOptions, crossValidation: true);
+                            mlHelper.TrainAndEvaluateAveragedPerceptron(largeDataView, null, featureOptions, crossValidation: false, testData: testDataView);
                             Console.WriteLine("-----------------------------------------------------------------");
                             Console.WriteLine();
                             writer.Flush();

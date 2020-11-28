@@ -18,10 +18,12 @@ namespace SentimentAnalysisProject.Experiments
             var mlHelper = new MachineLearningHelper(seed: 1, removeStopWords: false);
 
             //SmallDatasetSDCA(mlHelper);
-            //BigDatasetSDCA(mlHelper);
+            //ImdbDatasetSDCA(mlHelper);
+            //AmazonDatasetSDCA(mlHelper);
 
             //SmallDatasetAp(mlHelper);
-            LargeDatasetAp(mlHelper);
+            //ImdbDatasetAp(mlHelper);
+            AmazonDatasetAp(mlHelper);
 
             //Console.ReadKey();
         }
@@ -56,7 +58,7 @@ namespace SentimentAnalysisProject.Experiments
             }
         }
 
-        private static void BigDatasetSDCA(MachineLearningHelper mlHelper)
+        private static void ImdbDatasetSDCA(MachineLearningHelper mlHelper)
         {
             Console.WriteLine("------------IMDB LARGE DATASET-------------------");
             var featureOptions = new TextFeaturizingEstimator.Options
@@ -85,6 +87,33 @@ namespace SentimentAnalysisProject.Experiments
                 Console.WriteLine($"Hyper parameter = {i}");
                 mlHelper.TrainAndEvaluateSdca(dataViewLarge, null, featureOptions, sdcaOptions, crossValidation: true);
                 //mlHelper.TrainAndEvaluateAveragedPerceptron(dataViewLarge, null, featureOptions, crossValidation: true);
+                Console.WriteLine("-------------------------------------------");
+                Console.WriteLine();
+            }
+        }
+
+        private static void AmazonDatasetSDCA(MachineLearningHelper mlHelper)
+        {
+            Console.WriteLine("------------Amazon DATASET-------------------");
+            IDataView trainDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon1MTrainPath, hasHeader: true);
+            IDataView testDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon400KTestPath, hasHeader: true);
+            var featureOptions = new TextFeaturizingEstimator.Options
+            {
+                KeepPunctuations = false,
+                WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 1, UseAllLengths = false, Weighting = NgramExtractingEstimator.WeightingCriteria.Idf }
+            };
+            for (float i = 0.01f; i <= 0.15f; i += 0.005f)
+            {
+                var sdcaOptions = new SdcaLogisticRegressionBinaryTrainer.Options
+                {
+                    LabelColumnName = "Label",
+                    FeatureColumnName = "Features",
+                    Shuffle = false,
+                    NumberOfThreads = 1,
+                    ConvergenceTolerance = i
+                };
+                Console.WriteLine($"Hyper parameter = {i}");
+                var model = mlHelper.TrainAndEvaluateSdca(trainDataView, null, featureOptions, sdcaOptions, crossValidation: false, testData: testDataView);
                 Console.WriteLine("-------------------------------------------");
                 Console.WriteLine();
             }
@@ -145,7 +174,7 @@ namespace SentimentAnalysisProject.Experiments
             }
         }
 
-        private static void LargeDatasetAp(MachineLearningHelper mlHelper)
+        private static void ImdbDatasetAp(MachineLearningHelper mlHelper)
         {
             Console.WriteLine("------------IMDB 50k DATASET-------------------");
             IDataView dataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataImdbLarge>(Paths.Imdb50kDataPath, hasHeader: true);
@@ -156,13 +185,13 @@ namespace SentimentAnalysisProject.Experiments
                 WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 1, UseAllLengths = false, Weighting = NgramExtractingEstimator.WeightingCriteria.Idf },
             };
 
-            using (var fs = new FileStream("data/Ex3ReportImdbLogloss.csv", FileMode.OpenOrCreate, FileAccess.Write))
+            using (var fs = new FileStream("data/Ex3ReportImdbExploss.csv", FileMode.OpenOrCreate, FileAccess.Write))
             using (var writer = new StreamWriter(fs))
             {
                 writer.WriteLine("index,lossFunction,learningRate,NOiter,accuracy");
                 int index = 0;
 
-                foreach (float learningRate in new[] { 1f, 0.5f, 0.2f, 0.1f, 0.05f })
+                foreach (float learningRate in new[] { 1f, 0.5f, 0.2f, 0.1f, 0.05f }) // full test 1f, 0.5f, 0.2f, 0.1f, 0.05f
                 {
                     foreach (int iterationsCount in new[] { 1, 10, 50, 100, 200, 400 })
                     {
@@ -171,7 +200,7 @@ namespace SentimentAnalysisProject.Experiments
                         sw.Start();
                         var apOptions = new AveragedPerceptronTrainer.Options
                         {
-                            LossFunction = new LogLoss(),
+                            LossFunction = new ExpLoss(),
                             LearningRate = learningRate,
                             //LazyUpdate = false,
                             //RecencyGain = 0.1f,
@@ -181,7 +210,7 @@ namespace SentimentAnalysisProject.Experiments
                             LabelColumnName = "Label",
                             FeatureColumnName = "Features"
                         };
-                        Console.WriteLine($"Loss function = Log loss");
+                        Console.WriteLine($"Loss function = Exp loss");
                         Console.WriteLine($"Learning rate = {learningRate}");
                         Console.WriteLine($"Number of iterations = {iterationsCount}");
                         double? score = 0;
@@ -198,7 +227,66 @@ namespace SentimentAnalysisProject.Experiments
                         Console.WriteLine("Elapsed={0}",sw.Elapsed);
                         Console.WriteLine("-------------------------------------------");
                         Console.WriteLine();
-                        writer.WriteLine($"{index},Log loss,{learningRate},{iterationsCount},{score:0.##}");
+                        writer.WriteLine($"{index},Exp loss,{learningRate},{iterationsCount},{score:0.##}");
+                        writer.Flush(); ;
+                        index++;
+                    }
+                }
+            }
+        }
+
+        private static void AmazonDatasetAp(MachineLearningHelper mlHelper)
+        {
+            Console.WriteLine("------------Amazon DATASET-------------------");
+            IDataView trainDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon1MTrainPath, hasHeader: true);
+            IDataView testDataView = mlHelper.MlContext.Data.LoadFromTextFile<SentimentDataAmazonLarge>(Paths.Amazon400KTestPath, hasHeader: true);
+            var featureOptions = new TextFeaturizingEstimator.Options
+            {
+                KeepPunctuations = false,
+                WordFeatureExtractor = new WordBagEstimator.Options() { NgramLength = 2, UseAllLengths = false, Weighting = NgramExtractingEstimator.WeightingCriteria.Tf },
+            };
+
+            using (var fs = new FileStream("data/Ex3ReportAmazonHingeLoss3.csv", FileMode.OpenOrCreate, FileAccess.Write))
+            using (var writer = new StreamWriter(fs))
+            {
+                writer.WriteLine("index,lossFunction,learningRate,NOiter,accuracy");
+                int index = 0;
+
+                foreach (float learningRate in new[] { 1f, 0.5f, 0.2f, 0.1f, 0.05f}) // full test 1f, 0.5f, 0.2f, 0.1f, 0.05f
+                {
+                    foreach (int iterationsCount in new[] { 1, 10, 50, 100, 200, 400 })
+                    {
+                        var sw = new Stopwatch();
+
+                        sw.Start();
+                        var apOptions = new AveragedPerceptronTrainer.Options
+                        {
+                            LossFunction = new HingeLoss(),
+                            LearningRate = learningRate,
+                            DecreaseLearningRate = false,
+                            NumberOfIterations = iterationsCount,
+                            L2Regularization = 0,
+                            LabelColumnName = "Label",
+                            FeatureColumnName = "Features"
+                        };
+                        Console.WriteLine($"Loss function = Hinge loss");
+                        Console.WriteLine($"Learning rate = {learningRate}");
+                        Console.WriteLine($"Number of iterations = {iterationsCount}");
+                        double? score = 0;
+                        try
+                        {
+                            mlHelper.TrainAndEvaluateAveragedPerceptron(trainDataView, null, featureOptions, apOptions,
+                                ref score, crossValidation: false, testData: testDataView);
+                        }
+                        catch (InvalidOperationException e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        sw.Stop();
+                        Console.WriteLine("Elapsed={0}",sw.Elapsed);
+                        Console.WriteLine("-------------------------------------------");
+                        Console.WriteLine();
+                        writer.WriteLine($"{index},Hinge loss,{learningRate},{iterationsCount},{score:0.##}");
                         writer.Flush(); ;
                         index++;
                     }

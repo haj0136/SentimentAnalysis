@@ -38,7 +38,7 @@ namespace SentimentAnalysisProject
             return MlContext.Data.LoadFromTextFile<SentimentData>(path);
         }
 
-        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
             var featureOptions = new TextFeaturizingEstimator.Options
             {
@@ -50,10 +50,10 @@ namespace SentimentAnalysisProject
             {
                 featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
             }
-            return TrainAndEvaluateSdca(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput);
+            return TrainAndEvaluateSdca(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput, testData);
         }
 
-        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
             var sdcaOptions = new SdcaLogisticRegressionBinaryTrainer.Options
             {
@@ -67,7 +67,7 @@ namespace SentimentAnalysisProject
                 sdcaOptions = null;
             }
 
-            return TrainAndEvaluateSdca(data, modelPath, featureOptions, sdcaOptions, crossValidation, crossValidationDetailOutput);
+            return TrainAndEvaluateSdca(data, modelPath, featureOptions, sdcaOptions, crossValidation, crossValidationDetailOutput, testData);
         }
 
         /// <summary>
@@ -79,12 +79,24 @@ namespace SentimentAnalysisProject
         /// <param name="sdcaOptions"></param>
         /// <param name="crossValidation"></param>
         /// <param name="crossValidationDetailOutput"></param>
+        /// <param name="testData"></param>
         /// <returns></returns>
-        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, SdcaLogisticRegressionBinaryTrainer.Options sdcaOptions, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateSdca(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, SdcaLogisticRegressionBinaryTrainer.Options sdcaOptions, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
-            var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
-            var trainSet = splitData.TrainSet;
-            var testSet = splitData.TestSet;
+            IDataView trainSet;
+            IDataView testSet;
+
+            if (testData == null)
+            {
+                var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
+                trainSet = splitData.TrainSet;
+                testSet = splitData.TestSet;
+            }
+            else
+            {
+                trainSet = data;
+                testSet = testData;
+            }
 
 
             var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
@@ -148,7 +160,7 @@ namespace SentimentAnalysisProject
             return model;
         }
 
-        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
             var featureOptions = new TextFeaturizingEstimator.Options
             {
@@ -157,13 +169,13 @@ namespace SentimentAnalysisProject
             {
                 featureOptions.StopWordsRemoverOptions = new StopWordsRemovingEstimator.Options() { Language = TextFeaturizingEstimator.Language.English };
             }
-            return TrainAndEvaluateAveragedPerceptron(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput);
+            return TrainAndEvaluateAveragedPerceptron(data, modelPath, featureOptions, crossValidation, crossValidationDetailOutput, testData);
         }
 
-        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
             double? a = null;
-            return TrainAndEvaluateAveragedPerceptron(data, modelPath, featureOptions, null, ref a, crossValidation, crossValidationDetailOutput);
+            return TrainAndEvaluateAveragedPerceptron(data, modelPath, featureOptions, null, ref a, crossValidation, crossValidationDetailOutput, testData);
         }
 
         /// <summary>
@@ -176,12 +188,23 @@ namespace SentimentAnalysisProject
         /// <param name="accuracy">REF parameter to get model accuracy, pass null if no score is needed</param>
         /// <param name="crossValidation"></param>
         /// <param name="crossValidationDetailOutput"></param>
+        /// <param name="testData"></param>
         /// <returns></returns>
-        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, AveragedPerceptronTrainer.Options options,  ref double? accuracy, bool crossValidation = false, bool crossValidationDetailOutput = false)
+        public ITransformer TrainAndEvaluateAveragedPerceptron(IDataView data, string modelPath, TextFeaturizingEstimator.Options featureOptions, AveragedPerceptronTrainer.Options options,  ref double? accuracy, bool crossValidation = false, bool crossValidationDetailOutput = false, IDataView testData = null)
         {
-            var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
-            var trainSet = splitData.TrainSet;
-            var testSet = splitData.TestSet;
+            IDataView trainSet;
+            IDataView testSet;
+            if (testData == null)
+            {
+                var splitData = MlContext.Data.TrainTestSplit(data, 0.2);
+                trainSet = splitData.TrainSet;
+                testSet = splitData.TestSet;
+            }
+            else
+            {
+                trainSet = data;
+                testSet = testData;
+            }
 
             var pipeline = MlContext.Transforms.Text.FeaturizeText("Features", options: featureOptions, nameof(SentimentData.SentimentText));
 
@@ -226,7 +249,7 @@ namespace SentimentAnalysisProject
             }
             else
             {
-                Console.WriteLine("Train and Evaluate the Model");
+                Console.WriteLine("Train and Evaluate the Model AP");
                 model = trainingPipeline.Fit(trainSet);
 
                 Console.WriteLine("End of training");
@@ -236,9 +259,15 @@ namespace SentimentAnalysisProject
                 var predictions = model.Transform(testSet);
                 var metrics = MlContext.BinaryClassification.EvaluateNonCalibrated(data: predictions, labelColumnName: "Label", scoreColumnName: "Score");
 
+                if (accuracy != null)
+                {
+                    accuracy = metrics.Accuracy * 100;
+                }
+
                 Console.WriteLine();
                 Utils.PrintBinaryClassificationMetrics(trainer.ToString(), metrics);
                 Console.WriteLine("End of model evaluation");
+                Console.WriteLine();
             }
 
             if (modelPath != null)
